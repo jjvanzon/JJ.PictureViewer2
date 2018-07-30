@@ -2,13 +2,14 @@
 //  PictureViewer2.CategoriesWindow
 //
 //      Author: Jan-Joost van Zon
-//      Date: 31-10-2010 - 31-10-2010
+//      Date: 31-10-2010 - 06-11-2010
 //
 //  -----
 
 using System;
 using System.Windows.Forms;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace PictureViewer2
 {
@@ -16,24 +17,82 @@ namespace PictureViewer2
     public partial class CategoriesWindow : Form
     {
 
-        // Initialization & Finalization
+        // Initialization
 
         public CategoriesWindow()
         {
             InitializeComponent();
             GetCurrentOrDefaultCategoryList();
-            if (CategoryList == null)
-            {
-                MessageBox.Show(
-                    String.Format("Error loading category list '{0}'.", CategoryListRepository.CurrentCategoryListName),
-                    Program.ApplicationName);
-            }
-            else
-            {
-                FillCategoryListsComboBox();
-                FillCategoriesGrid();
-            }
+            BindWithCheck();
             Draw();
+        }
+
+        // Data
+
+        private CategoryList CategoryList;
+        private CategoryListRepository CategoryListRepository = new CategoryListRepository();
+
+        // Events
+
+        private void categoryListsComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            SelectCategoryList();
+        }
+
+        private void newButton_Click(object sender, EventArgs e)
+        {
+            New();
+        }
+
+        private void addCategoryButton_Click(object sender, EventArgs e)
+        {
+            BeginAdd();
+        }
+
+        private void categoriesGrid_UserAddedRow(object sender, DataGridViewRowEventArgs e)
+        {
+            EndAdd(e.Row.Index - 1); // e.Row.Index will return the wrong number. That's what the -1 is for.
+        }
+
+        private void categoriesGrid_CellEndEdit(object sender, DataGridViewCellEventArgs e)
+        {
+            EndEdit(e.RowIndex, e.ColumnIndex);
+        }
+
+        private void categoriesGrid_UserDeletingRow(object sender, DataGridViewRowCancelEventArgs e)
+        {
+            RemoveCategory();
+        }
+
+        private void categoriesGrid_UserDeletedRow(object sender, DataGridViewRowEventArgs e)
+        {
+            AfterRemoveCategory();
+        }
+
+        private void removeCategoryButton_Click(object sender, EventArgs e)
+        {
+            RemoveCategory();
+            AfterRemoveCategory();
+        }
+
+        private void clearCategoriesButton_Click(object sender, EventArgs e)
+        {
+            Clear();
+        }
+
+        private void saveCategoryListButton_Click(object sender, EventArgs e)
+        {
+            Save();
+        }
+        
+        private void renameButton_Click(object sender, EventArgs e)
+        {
+            Rename();
+        }
+
+        private void removeCategoryListButton_Click(object sender, EventArgs e)
+        {
+            RemoveCategoryList();
         }
 
         private void okButton_Click(object sender, EventArgs e)
@@ -43,56 +102,14 @@ namespace PictureViewer2
 
         private void CategoriesWindow_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (Dirty)
-            {
-                switch (MessageBox.Show("Save changes?", Program.ApplicationName, MessageBoxButtons.YesNoCancel))
-                {
-                    case DialogResult.Yes:
-                        e.Cancel = !Save();
-                        break;
-                    case DialogResult.Cancel:
-                        e.Cancel = true;
-                        break;
-                    case DialogResult.No:
-                        return;
-                }
-            }
+            e.Cancel = CheckedSaveChanges() == DialogResult.Cancel;
         }
 
-        // Data Objects
-
-        private CategoryList CategoryList;
-        private CategoryListRepository CategoryListRepository = new CategoryListRepository();
-
-        // Processing Steps
+        // Methods
 
         private bool Dirty;
-        public bool Dirty
-        {
-            get
-            {
-                return Dirty;
-            }
-            set
-            {
-                // Changed?
-                if (Dirty != value)
-                {
-                    // Store
-                    Dirty = value;
-                }
-            }
-        }
 
-        private string CategoryListNameToDisplay
-        {
-            get
-            {
-                return
-                    (CategoryList.IsDefault ? "(Default)" : CategoryList.Name) +
-                    (Dirty ? " (modified)" : "");
-            }
-        }
+        private bool IgnoreCategoryListsComboBoxSelectedIndexChanged;
 
         private void GetCurrentOrDefaultCategoryList()
         {
@@ -100,8 +117,30 @@ namespace PictureViewer2
             Dirty = false;
         }
 
-        private void FillCategoryListsComboBox()
+        private void BindWithCheck()
         {
+            if (CategoryList == null)
+            {
+                MessageBox.Show(
+                    String.Format("Error loading category list '{0}'.", CategoryListRepository.CurrentCategoryListName),
+                    Program.ApplicationName);
+            }
+            else
+            {
+                Bind();
+            }
+        }
+
+        private void Bind()
+        {
+            BindCategoryListsComboBox();
+            BindCategoriesGrid();
+        }
+
+        private void BindCategoryListsComboBox()
+        {
+            // Prevent SelectedIndexChanged from firing
+            IgnoreCategoryListsComboBoxSelectedIndexChanged = true;
             // Call repository
             string[] names = CategoryListRepository.GetAllCategoryListNames();
             // Fill combo list
@@ -110,32 +149,22 @@ namespace PictureViewer2
             {
                 categoryListsComboBox.Items.Add(name);
             }
-            // Set combo text
-            categoryListsComboBox.Text = CategoryListNameToDisplay;
+            // Select current category list
+            categoryListsComboBox.Text = CategoryList.Name;
+            // End prevent SelectedIndexChanged from firing
+            IgnoreCategoryListsComboBoxSelectedIndexChanged = false;
         }
 
-        private void categoryListsComboBox_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            // Get Category List
-            CategoryList = CategoryListRepository.GetCategoryListByName(categoryListsComboBox.SelectedItem.ToString());
-            // Assign current category list name
-            CategoryListRepository.CurrentCategoryListName = categoryListsComboBox.SelectedItem.ToString();
-            // Set not dirty
-            Dirty = false;
-            // Rebind grid
-            FillCategoriesGrid();
-        }
-
-        private void FillCategoriesGrid()
+        private void BindCategoriesGrid()
         {
             // Remember selected cell
             DataGridViewRow row = GetSelectedRow();
-            int currentRowIndex = (row != null) ? row.Index : -1;
+            int rememberedRowIndex = (row != null) ? row.Index : -1;
             // Fill grid with categories
             categoriesGrid.Rows.Clear();
             if (CategoryList != null)
             {
-                int i = 1;
+                int i = 0;
                 foreach (Category category in CategoryList)
                 {
                     categoriesGrid.Rows.Add(
@@ -144,57 +173,56 @@ namespace PictureViewer2
                         category.KeyboardKey);
                 }
             }
-            // Correct current row index
-            if (currentRowIndex > categoriesGrid.Rows.Count - 1) { 
-                currentRowIndex = categoriesGrid.Rows.Count - 1;
+            // Correct remembered row index
+            if (rememberedRowIndex > categoriesGrid.Rows.Count - 1) { 
+                rememberedRowIndex = categoriesGrid.Rows.Count - 1;
             };
-            // Restore selected cell, if any.
-            if (currentRowIndex != -1) {
-                categoriesGrid.CurrentCell = categoriesGrid.Rows[currentRowIndex].Cells[1];
+            // Restore selected cell, if it is within rangethere are any rows at all, and any was row selected at all.
+            if (rememberedRowIndex != -1) {
+                categoriesGrid.CurrentCell = categoriesGrid.Rows[rememberedRowIndex].Cells[1];
             };
         }
 
-        private void newButton_Click(object sender, EventArgs e)
+        private void SelectCategoryList()
         {
-            if (Dirty)
+            // Get out of here, if ignore flag on (meaning the selection change is not initiated by user, but caused by data binding)
+            if (IgnoreCategoryListsComboBoxSelectedIndexChanged) return;
+            // Checked Save changes
+            if (CheckedSaveChanges() == DialogResult.Cancel)
             {
-                switch (MessageBox.Show("Save changes first?", Program.ApplicationName, MessageBoxButtons.YesNoCancel))
-                {
-                    case DialogResult.Yes:
-                        // Save first
-                        Save();
-                        break;
-                    case DialogResult.Cancel:
-                        // Stop here
-                        return;
-                    case DialogResult.No:
-                        // Keep going
-                        break;
-                }
+                BindCategoryListsComboBox();
+                return;
             }
-            // New
-            string name = InputBox.Show("Please specify a name.", "", Program.ApplicationName);
             // Get Category List
-            CategoryList = new CategoryList();
-            CategoryList.Name = name;
+            CategoryList = CategoryListRepository.GetCategoryListByName(categoryListsComboBox.SelectedItem.ToString());
             // Assign current category list name
-            CategoryListRepository.CurrentCategoryListName = name;
+            CategoryListRepository.CurrentCategoryListName = CategoryList.Name;
+            // Set not dirty
+            Dirty = false;
+            // Rebind grid
+            BindCategoriesGrid();
+        }
+
+        private void New()
+        {
+            // Checked Save changes
+            if (CheckedSaveChanges() == DialogResult.Cancel) return;
+            // Enter new name
+            string newName = InputBox.Show("Please specify a name.", "", Program.ApplicationName);
+            // Get out of here if canceled
+            if (newName == "") return;
+            // Create new category list
+            CategoryList = new CategoryList();
+            CategoryList.Name = newName;
+            // Assign current category list name
+            CategoryListRepository.CurrentCategoryListName = newName;
             // Set not dirty
             Dirty = false;
             // Rebind
-            FillCategoryListsComboBox();
-            FillCategoriesGrid();
-            return;
+            Bind();
         }
 
-        private void categoriesGrid_UserAddedRow(object sender, DataGridViewRowEventArgs e)
-        {
-            CategoryList.Add(new Category());
-            categoriesGrid.Rows[e.Row.Index - 1].Cells["Index"].Value = CategoryList.Count;
-            Dirty = true;
-        }
-
-        private void addCategoryButton_Click(object sender, EventArgs e)
+        private void BeginAdd()
         {
             categoriesGrid.ClearSelection();
             DataGridViewRow row = categoriesGrid.Rows[categoriesGrid.NewRowIndex];
@@ -202,39 +230,70 @@ namespace PictureViewer2
             categoriesGrid.Focus();
         }
 
-        private void categoriesGrid_CellEndEdit(object sender, DataGridViewCellEventArgs e)
+        private void EndAdd(int rowIndex)
         {
-            string columnName = categoriesGrid.Columns[e.ColumnIndex].Name;
-            DataGridViewRow row = categoriesGrid.Rows[e.RowIndex];
-            int index = Convert.ToInt32(row.Cells["Index"].Value) - 1;
+            CategoryList.Add(new Category());
+            categoriesGrid.Rows[rowIndex].Cells["Index"].Value = CategoryList.Count - 1;
+            Dirty = true;
+        }
+
+        private void EndEdit(int rowIndex, int columnIndex)
+        {
+            string columnName = categoriesGrid.Columns[columnIndex].Name;
+            DataGridViewRow row = categoriesGrid.Rows[rowIndex];
+            int index = Convert.ToInt32(row.Cells["Index"].Value);
             switch (columnName)
             {
                 case "SubFolderName":
-                    CategoryList[index].SubFolderName = Convert.ToString(row.Cells[columnName].Value);
+                    if (row.Cells[columnName].Value != null)
+                    {
+                        CategoryList[index].SubFolderName = Convert.ToString(row.Cells[columnName].Value);
+                    }
                     break;
                 case "KeyboardKey":
-                    CategoryList[index].KeyboardKey = Convert.ToChar(row.Cells[columnName].Value);
+                    if (row.Cells[columnName].Value != null)
+                    {
+                        CategoryList[index].KeyboardKey = Convert.ToChar(row.Cells[columnName].Value);
+                    }
                     break;
             }
             Dirty = true;
         }
 
-        private void categoriesGrid_UserDeletingRow(object sender, DataGridViewRowCancelEventArgs e)
+        private void RemoveCategoryList()
         {
-            if (!e.Row.IsNewRow)
+            // Condition: name specified
+            if (String.IsNullOrWhiteSpace(CategoryList.Name))
             {
-                int index = Convert.ToInt32(e.Row.Cells["Index"].Value) - 1;
-                CategoryList.RemoveAt(index);
+                MessageBox.Show("Please pick a category list to remove.");
+                return;
+            }
+            // If exists
+            if (CategoryListRepository.CategoryListExists(CategoryList.Name))
+            {
+                // Ask if sure
+                if (MessageBox.Show(
+                        String.Format("Are you sure you want to remove category list '{0}'?", CategoryList.Name),
+                        Program.ApplicationName,
+                        MessageBoxButtons.YesNo)
+                        == DialogResult.Yes)
+                {
+                    // Delete
+                    CategoryListRepository.DeleteCategoryList(CategoryList.Name);
+                    // Move to first or default category list
+                    CategoryListRepository.CurrentCategoryListName = CategoryListRepository.GetFirstCategoryListName();
+                    GetCurrentOrDefaultCategoryList();
+                    // Rebind
+                    Bind();
+                }
+            }
+            else
+            {
+                MessageBox.Show(String.Format("You can not delete category list '{0}' because it does not exists.", CategoryList.Name));
             }
         }
 
-        private void categoriesGrid_UserDeletedRow(object sender, DataGridViewRowEventArgs e)
-        {
-            FillCategoriesGrid(); // After deleting refill the whole grid with categories
-            Dirty = true;
-        }
-
-        private void removeCategoryButton_Click(object sender, EventArgs e)
+        private void RemoveCategory()
         {
             // Get row of selected cell
             DataGridViewRow row = GetSelectedRow();
@@ -244,19 +303,29 @@ namespace PictureViewer2
                 if (!row.IsNewRow)
                 {
                     // Get index property
-                    int index = Convert.ToInt32(row.Cells["Index"].Value) - 1;
+                    int index = Convert.ToInt32(row.Cells["Index"].Value);
                     // Remove Category
                     CategoryList.RemoveAt(index);
-                    // Rebind grid
-                    FillCategoriesGrid();
-                    categoriesGrid.Focus();
-                    // Set Dirty
-                    Dirty = true;
                 }
             }
         }
 
-        private void clearCategoriesButton_Click(object sender, EventArgs e)
+        /// <summary>
+        /// This is a separate method, because the removal must be done
+        /// before the row in the grid is gone, and rebinding must
+        /// be done after the row in the grid is automatically deleted
+        /// by the grid control.
+        /// </summary>
+        private void AfterRemoveCategory()
+        {
+            // Rebind grid
+            BindCategoriesGrid();
+            categoriesGrid.Focus();
+            // Set Dirty
+            Dirty = true;
+        }
+
+        private void Clear()
         {
             if (
                 MessageBox.Show(
@@ -270,15 +339,34 @@ namespace PictureViewer2
                 // Clear list in data
                 CategoryList.Clear();
                 // Rebind grid
-                FillCategoriesGrid();
+                BindCategoriesGrid();
                 // Set Dirty
                 Dirty = true;
             }
         }
 
-        private void saveCategoryListButton_Click(object sender, EventArgs e)
+        private DialogResult CheckedSaveChanges()
         {
-            Save();
+            if (Dirty)
+            {
+                switch (MessageBox.Show("Save changes first?", Program.ApplicationName, MessageBoxButtons.YesNoCancel))
+                {
+                    case DialogResult.Yes:
+                        switch (Save())
+                        {
+                            case true: 
+                                return DialogResult.Yes;
+                            case false: 
+                                return DialogResult.Cancel;
+                        }
+                        break;
+                    case DialogResult.Cancel:
+                        return DialogResult.Cancel;
+                    case DialogResult.No:
+                        return DialogResult.No;
+                }
+            }
+            return DialogResult.Yes;
         }
 
         /// <summary>
@@ -287,7 +375,7 @@ namespace PictureViewer2
         private bool Save()
         {
             // Store current or typed in category list name
-            string name = categoryListsComboBox.Text;
+            string name = CategoryList.Name;
             // Prompt user for name
             name = InputBox.Show(
                 "Please specify a name.",
@@ -323,12 +411,12 @@ namespace PictureViewer2
             // Set not default
             CategoryList.IsDefault = false;
             // Rebind ComboBox
-            FillCategoryListsComboBox();
+            BindCategoryListsComboBox();
             // Return success
             return true;
         }
         
-        private void renameButton_Click(object sender, EventArgs e)
+        private void Rename()
         {
             if (Dirty)
             {
@@ -345,42 +433,7 @@ namespace PictureViewer2
                 // Set Current Category List Name Setting
                 CategoryListRepository.CurrentCategoryListName = newName;
                 // Rebind Combo
-                FillCategoryListsComboBox();
-            }
-        }
-
-        private void removeCategoryListButton_Click(object sender, EventArgs e)
-        {
-            // Condition: name specified
-            if (String.IsNullOrWhiteSpace(CategoryList.Name))
-            {
-                MessageBox.Show("Please pick a category list to remove.");
-                return;
-            }
-            // If exists
-            if (CategoryListRepository.CategoryListExists(CategoryList.Name))
-            {
-                // Ask if sure
-                if (MessageBox.Show(
-                        String.Format("Are you sure you want to remove category list '{0}'?", CategoryList.Name),
-                        Program.ApplicationName,
-                        MessageBoxButtons.YesNo)
-                        == DialogResult.Yes)
-                {
-                    // Delete
-                    CategoryListRepository.DeleteCategoryList(CategoryList.Name);
-                    // Move to first or default category list
-                    CategoryListRepository.CurrentCategoryListName = CategoryListRepository.GetFirstCategoryListName();
-                    GetCurrentOrDefaultCategoryList();
-                    // Rebind
-                    FillCategoryListsComboBox();
-                    FillCategoriesGrid();
-
-                }
-            }
-            else
-            {
-                MessageBox.Show(String.Format("You can not delete category list '{0}' because it does not exists.", CategoryList.Name));
+                BindCategoryListsComboBox();
             }
         }
 
