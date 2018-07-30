@@ -3,6 +3,8 @@ JJ.PictureViewer2
 
 *Jan-Joost van Zon, 2010-10*
 
+This is a Visual Studio 2010 C# project.
+
 A simple picture viewer program.
 You can browse folders and files with it,
 view pictures using arrow keys up and down,
