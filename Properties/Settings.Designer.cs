@@ -98,12 +98,12 @@ namespace PictureViewer2.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string CurrentCategoriesPresetName {
+        public string CurrentCategoryListName {
             get {
-                return ((string)(this["CurrentCategoriesPresetName"]));
+                return ((string)(this["CurrentCategoryListName"]));
             }
             set {
-                this["CurrentCategoriesPresetName"] = value;
+                this["CurrentCategoryListName"] = value;
             }
         }
     }

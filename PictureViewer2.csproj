@@ -74,7 +74,8 @@
       <DependentUpon>CategoriesWindow.cs</DependentUpon>
     </Compile>
     <Compile Include="Category.cs" />
-    <Compile Include="Categories.cs" />
+    <Compile Include="CategoryList.cs" />
+    <Compile Include="CategoryListRepository.cs" />
     <Compile Include="Exceptions.cs" />
     <Compile Include="FileListBox.cs">
       <SubType>Component</SubType>

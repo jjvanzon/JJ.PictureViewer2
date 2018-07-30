@@ -2,22 +2,12 @@
 //  PictureViewer2.CategoriesWindow
 //
 //      Author: Jan-Joost van Zon
-//      Date: 31-10-2010 - 31-10-2020
+//      Date: 31-10-2010 - 31-10-2010
 //
 //  -----
 
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
 using System.Windows.Forms;
-using System.IO;
-using System.IO.IsolatedStorage;
-using System.Xml.Serialization;
-using PictureViewer2.Properties;
 
 namespace PictureViewer2
 {
@@ -29,48 +19,70 @@ namespace PictureViewer2
         public CategoriesWindow()
         {
             InitializeComponent();
-            FillPresetComboBox();
+            FillCategoryListsComboBox();
+            GetCurrentOrDefaultCategoryList();
+            FillCategoriesGrid();
         }
 
-        // Data Object
+        // Entity Object
 
-        private List<Category> _categorylist;
-        public List<Category> CategoryList
+        private CategoryList CategoryList;
+
+        // Steps
+
+        private void GetCurrentOrDefaultCategoryList()
         {
-            get
-            {
-                return _categorylist;
-            }
-            set
-            {
-                if (_categorylist != value)
-                {
-                    _categorylist = value;
-                    FillCategoryGrid();
-                }
-            }
+            var repository = new CategoryListRepository();
+            CategoryList = repository.GetCurrentOrDefaultCategoryList();
         }
 
-        // Data Binding
-
-        private void FillCategoryGrid()
+        private void FillCategoryListsComboBox()
         {
-            categoryGrid.Rows.Clear();
+            // Call repository
+            var repository = new CategoryListRepository();
+            string[] names = repository.GetAllCategoryListNames();
+            // Fill combo list
+            categoryListsComboBox.Items.Clear();
+            foreach (string name in names)
+            {
+                categoryListsComboBox.Items.Add(name);
+            }
+            // Set combo text
+            categoryListsComboBox.Text = repository.CurrentCategoryListName;
+        }
+
+        private void categoryListsComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            // Get repository
+            var repository = new CategoryListRepository();
+            // Get Category List
+            CategoryList = repository.GetCategoryListByName(categoryListsComboBox.SelectedItem.ToString());
+            // Assign current category list name
+            repository.CurrentCategoryListName = categoryListsComboBox.SelectedItem.ToString();
+            // Rebind grid
+            FillCategoriesGrid();
+        }
+
+        private void FillCategoriesGrid()
+        {
+            categoriesGrid.Rows.Clear();
             if (CategoryList != null)
             {
                 int i = 1;
                 foreach (Category category in CategoryList)
                 {
-                    categoryGrid.Rows.Add(i++, category.SubFolderName, category.KeyboardKey);
+                    categoriesGrid.Rows.Add(
+                        i++, 
+                        category.SubFolderName, 
+                        category.KeyboardKey);
                 }
             }
-            categoryGrid.Refresh();
         }
 
-        private void dataGridView_CellEndEdit(object sender, DataGridViewCellEventArgs e)
+        private void categoriesGrid_CellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
-            string columnName = categoryGrid.Columns[e.ColumnIndex].Name;
-            DataGridViewRow row = categoryGrid.Rows[e.RowIndex];
+            string columnName = categoriesGrid.Columns[e.ColumnIndex].Name;
+            DataGridViewRow row = categoriesGrid.Rows[e.RowIndex];
             int index = Convert.ToInt32(row.Cells["Index"].Value) - 1;
             switch (columnName)
             {
@@ -83,122 +95,61 @@ namespace PictureViewer2
             }
         }
 
-        private void dataGridView_UserAddedRow(object sender, DataGridViewRowEventArgs e)
+        private void categoriesGrid_UserAddedRow(object sender, DataGridViewRowEventArgs e)
         {
             CategoryList.Add(new Category());
-            categoryGrid.Rows[e.Row.Index - 1].Cells["Index"].Value = CategoryList.Count;
+            categoriesGrid.Rows[e.Row.Index - 1].Cells["Index"].Value = CategoryList.Count;
         }
 
-        private void dataGridView_UserDeletingRow(object sender, DataGridViewRowCancelEventArgs e)
+        private void categoriesGrid_UserDeletingRow(object sender, DataGridViewRowCancelEventArgs e)
         {
             int index = Convert.ToInt32(e.Row.Cells["Index"].Value) - 1;
             CategoryList.RemoveAt(index);
         }
 
-        private void dataGridView_UserDeletedRow(object sender, DataGridViewRowEventArgs e)
+        private void categoriesGrid_UserDeletedRow(object sender, DataGridViewRowEventArgs e)
         {
-            FillCategoryGrid(); // After deleting refill the whole grid
+            FillCategoriesGrid(); // After deleting refill the whole grid with categories
         }
 
-        // Storage
-
-        private const string DirectoryName = "Category Presets";
-
-        private void FillPresetComboBox()
+        private void saveCategoryListButton_Click(object sender, EventArgs e)
         {
-            // Open store
-            IsolatedStorageFile isf = IsolatedStorageFile.GetMachineStoreForAssembly();
-            // Make sure the directory exists
-            isf.CreateDirectory(DirectoryName); // Will succeed if it already exists.
-            // Get file names
-            string[] fileNames = isf.GetFileNames(Path.Combine(DirectoryName, "*.xml"));
-            // Fill combo
-            presetComboBox.Items.Clear();
-            foreach (string fileName in fileNames)
-            {
-                presetComboBox.Items.Add(Path.GetFileNameWithoutExtension(fileName));
-            }
-            presetComboBox.Text = Settings.Default.CurrentCategoriesPresetName;
-        }
-
-        private void presetComboBox_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            LoadPreset(presetComboBox.SelectedItem.ToString());
-        }
-
-        public void LoadPreset(string name)
-        {
-            // Open store
-            IsolatedStorageFile isf = IsolatedStorageFile.GetMachineStoreForAssembly();
-            // Construct path
-            string path = Path.Combine(DirectoryName, name + ".xml");
-            // File Exists?
-            if (isf.FileExists(path))
-            {
-                // Load file
-                using (var fs = new IsolatedStorageFileStream(path, FileMode.Open, FileAccess.Read, isf))
-                {
-                    // Create Serializer
-                    var xmlSerializer = new XmlSerializer(typeof(List<Category>));
-                    // Serialize
-                    CategoryList = (List<Category>)xmlSerializer.Deserialize(fs);
-                }
-            }
-            // Assign current preset name
-            Settings.Default.CurrentCategoriesPresetName = name;
-            Settings.Default.Save();
-            // Rebind data
-            FillCategoryGrid();
-        }
-
-        private void saveButton_Click(object sender, EventArgs e)
-        {
-            Settings.Default.CurrentCategoriesPresetName = presetComboBox.Text;
-            Settings.Default.Save();
-            SavePreset();
-        }
-
-        private void SavePreset()
-        {
+            // Get repository
+            var repository = new CategoryListRepository();
+            // Store current category list name
+            string name = categoryListsComboBox.Text;
             // Prompt user for name
-            Settings.Default.CurrentCategoriesPresetName = InputBox.Show("Please specify a name.", Settings.Default.CurrentCategoriesPresetName, Program.ApplicationName);
-            // Get out of here if user cancelled
-            if (String.IsNullOrWhiteSpace(Settings.Default.CurrentCategoriesPresetName)) { return; }
-            // Save in isolated storage
-            // Get store
-            IsolatedStorageFile isf = IsolatedStorageFile.GetMachineStoreForAssembly();
-            // Create directory
-            isf.CreateDirectory(DirectoryName); // Will succeed if it already exists.
-            // Construct file path
-            string path = Path.Combine(DirectoryName, Settings.Default.CurrentCategoriesPresetName + ".xml");
-            // Check file exists
-            if (isf.FileExists(path))
+            name = InputBox.Show(
+                "Please specify a name.", 
+                name, 
+                Program.ApplicationName);
+            // If canceled, get out of here.
+            if (String.IsNullOrWhiteSpace(name)) { return; }
+            // Check file already exists
+            if (repository.CategoryListExists(name))
             {
                 // Prompt user for overwrite
                 if (
                     MessageBox.Show(
-                        "Overwrite preset '" + Settings.Default.CurrentCategoriesPresetName + "'?",
+                        "Overwrite category list '" + name + "'?",
                         Program.ApplicationName,
-                        MessageBoxButtons.OKCancel
+                        MessageBoxButtons.YesNo
                     )
-                    == DialogResult.Cancel
+                    == DialogResult.No
                 )
                 {
                     // Get out of here if user cancelled
                     return;
                 }
             }
-            // Save file (overwrite if exists)
-            // Create Stream
-            using (var fs = new IsolatedStorageFileStream(path, FileMode.Create, FileAccess.Write, isf))
-            {
-                // Create Serializer
-                var xmlSerializer = new XmlSerializer(typeof(List<Category>));
-                // Serialize
-                xmlSerializer.Serialize(fs, CategoryList);
-            }
+            // Set Category List Name
+            CategoryList.Name = name;
+            // Save Category List
+            repository.SaveCategoryList(CategoryList);
+            // Set current category list name
+            repository.CurrentCategoryListName = name;
             // Rebind ComboBox
-            FillPresetComboBox();
+            FillCategoryListsComboBox();
         }
 
     }

@@ -29,14 +29,8 @@ namespace PictureViewer2
         public MainWindow()
         {
             InitializeComponent();
-            if (!String.IsNullOrWhiteSpace(Settings.Default.CurrentCategoriesPresetName))
-            {
-                Categories.LoadPreset(Settings.Default.CurrentCategoriesPresetName);
-            }
-            else
-            {
-                Categories.BuildDefaultCategoryList();
-            }
+            var repository = new CategoryListRepository();
+            CategoryList = repository.GetCurrentOrDefaultCategoryList();
             BindKeyPress();
             RequestDraw();
         }
@@ -50,6 +44,10 @@ namespace PictureViewer2
         {
             SaveSettings();
         }
+
+        // Category List
+
+        private CategoryList CategoryList;
 
         // Selecting Items
 
@@ -137,13 +135,12 @@ namespace PictureViewer2
                     FullScreen = false;
                     return;
             }
-            // Process Category Keys
-            Category category = Categories.FindByKey(KeyChar);
+            Category category = CategoryList.FindCategoryByKey(KeyChar);
             if (category != null)
             {
                 try
                 {
-                    Categories.MoveToCategoryFolder(
+                    CategoryList.MoveToCategoryFolder(
                         folderPathTextBox.Text,
                         (string)fileListBox.SelectedItem,
                         category);
@@ -298,7 +295,6 @@ namespace PictureViewer2
         private void categoriesToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var categoriesWindow = new CategoriesWindow();
-            categoriesWindow.CategoryList = Categories.List;
             categoriesWindow.ShowDialog();
         }
 

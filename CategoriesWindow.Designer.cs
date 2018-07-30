@@ -29,32 +29,32 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            this.categoryGrid = new System.Windows.Forms.DataGridView();
+            this.categoriesGrid = new System.Windows.Forms.DataGridView();
             this.Index = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.SubFolderName = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.KeyboardKey = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.presetComboBox = new System.Windows.Forms.ComboBox();
-            this.saveButton = new System.Windows.Forms.Button();
+            this.categoryListsComboBox = new System.Windows.Forms.ComboBox();
+            this.saveCategoryListButton = new System.Windows.Forms.Button();
             this.imageList = new System.Windows.Forms.ImageList(this.components);
-            ((System.ComponentModel.ISupportInitialize)(this.categoryGrid)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.categoriesGrid)).BeginInit();
             this.SuspendLayout();
             // 
-            // categoryGrid
+            // categoriesGrid
             // 
-            this.categoryGrid.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.categoryGrid.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.categoriesGrid.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.categoriesGrid.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.Index,
             this.SubFolderName,
             this.KeyboardKey});
-            this.categoryGrid.Location = new System.Drawing.Point(0, 28);
-            this.categoryGrid.MultiSelect = false;
-            this.categoryGrid.Name = "categoryGrid";
-            this.categoryGrid.Size = new System.Drawing.Size(391, 194);
-            this.categoryGrid.TabIndex = 1;
-            this.categoryGrid.CellEndEdit += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView_CellEndEdit);
-            this.categoryGrid.UserAddedRow += new System.Windows.Forms.DataGridViewRowEventHandler(this.dataGridView_UserAddedRow);
-            this.categoryGrid.UserDeletedRow += new System.Windows.Forms.DataGridViewRowEventHandler(this.dataGridView_UserDeletedRow);
-            this.categoryGrid.UserDeletingRow += new System.Windows.Forms.DataGridViewRowCancelEventHandler(this.dataGridView_UserDeletingRow);
+            this.categoriesGrid.Location = new System.Drawing.Point(0, 28);
+            this.categoriesGrid.MultiSelect = false;
+            this.categoriesGrid.Name = "categoriesGrid";
+            this.categoriesGrid.Size = new System.Drawing.Size(391, 194);
+            this.categoriesGrid.TabIndex = 1;
+            this.categoriesGrid.CellEndEdit += new System.Windows.Forms.DataGridViewCellEventHandler(this.categoriesGrid_CellEndEdit);
+            this.categoriesGrid.UserAddedRow += new System.Windows.Forms.DataGridViewRowEventHandler(this.categoriesGrid_UserAddedRow);
+            this.categoriesGrid.UserDeletedRow += new System.Windows.Forms.DataGridViewRowEventHandler(this.categoriesGrid_UserDeletedRow);
+            this.categoriesGrid.UserDeletingRow += new System.Windows.Forms.DataGridViewRowCancelEventHandler(this.categoriesGrid_UserDeletingRow);
             // 
             // Index
             // 
@@ -76,24 +76,24 @@
             this.KeyboardKey.MaxInputLength = 1;
             this.KeyboardKey.Name = "KeyboardKey";
             // 
-            // presetComboBox
+            // categoryListsComboBox
             // 
-            this.presetComboBox.FormattingEnabled = true;
-            this.presetComboBox.Location = new System.Drawing.Point(0, 1);
-            this.presetComboBox.Name = "presetComboBox";
-            this.presetComboBox.Size = new System.Drawing.Size(344, 21);
-            this.presetComboBox.TabIndex = 2;
-            this.presetComboBox.SelectedIndexChanged += new System.EventHandler(this.presetComboBox_SelectedIndexChanged);
+            this.categoryListsComboBox.FormattingEnabled = true;
+            this.categoryListsComboBox.Location = new System.Drawing.Point(0, 1);
+            this.categoryListsComboBox.Name = "categoryListsComboBox";
+            this.categoryListsComboBox.Size = new System.Drawing.Size(344, 21);
+            this.categoryListsComboBox.TabIndex = 2;
+            this.categoryListsComboBox.SelectedIndexChanged += new System.EventHandler(this.categoryListsComboBox_SelectedIndexChanged);
             // 
-            // saveButton
+            // saveCategoryListButton
             // 
-            this.saveButton.Location = new System.Drawing.Point(349, 1);
-            this.saveButton.Name = "saveButton";
-            this.saveButton.Size = new System.Drawing.Size(42, 21);
-            this.saveButton.TabIndex = 3;
-            this.saveButton.Text = "Save";
-            this.saveButton.UseVisualStyleBackColor = true;
-            this.saveButton.Click += new System.EventHandler(this.saveButton_Click);
+            this.saveCategoryListButton.Location = new System.Drawing.Point(349, 1);
+            this.saveCategoryListButton.Name = "saveCategoryListButton";
+            this.saveCategoryListButton.Size = new System.Drawing.Size(42, 21);
+            this.saveCategoryListButton.TabIndex = 3;
+            this.saveCategoryListButton.Text = "Save";
+            this.saveCategoryListButton.UseVisualStyleBackColor = true;
+            this.saveCategoryListButton.Click += new System.EventHandler(this.saveCategoryListButton_Click);
             // 
             // imageList
             // 
@@ -106,24 +106,24 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(391, 223);
-            this.Controls.Add(this.saveButton);
-            this.Controls.Add(this.presetComboBox);
-            this.Controls.Add(this.categoryGrid);
+            this.Controls.Add(this.saveCategoryListButton);
+            this.Controls.Add(this.categoryListsComboBox);
+            this.Controls.Add(this.categoriesGrid);
             this.Name = "CategoriesWindow";
             this.Text = "Categories - Picture Viewer 2";
-            ((System.ComponentModel.ISupportInitialize)(this.categoryGrid)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.categoriesGrid)).EndInit();
             this.ResumeLayout(false);
 
         }
 
         #endregion
 
-        private System.Windows.Forms.DataGridView categoryGrid;
+        private System.Windows.Forms.DataGridView categoriesGrid;
         private System.Windows.Forms.DataGridViewTextBoxColumn Index;
         private System.Windows.Forms.DataGridViewTextBoxColumn SubFolderName;
         private System.Windows.Forms.DataGridViewTextBoxColumn KeyboardKey;
-        private System.Windows.Forms.ComboBox presetComboBox;
-        private System.Windows.Forms.Button saveButton;
+        private System.Windows.Forms.ComboBox categoryListsComboBox;
+        private System.Windows.Forms.Button saveCategoryListButton;
         private System.Windows.Forms.ImageList imageList;
     }
 }
