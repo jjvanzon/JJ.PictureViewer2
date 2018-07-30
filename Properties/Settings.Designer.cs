@@ -94,5 +94,17 @@ namespace PictureViewer2.Properties {
                 this["WindowHeight"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string CurrentCategoriesPresetName {
+            get {
+                return ((string)(this["CurrentCategoriesPresetName"]));
+            }
+            set {
+                this["CurrentCategoriesPresetName"] = value;
+            }
+        }
     }
 }

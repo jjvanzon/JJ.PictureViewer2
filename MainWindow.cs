@@ -29,7 +29,14 @@ namespace PictureViewer2
         public MainWindow()
         {
             InitializeComponent();
-            Categories.BuildDefaultCategoryList();
+            if (!String.IsNullOrWhiteSpace(Settings.Default.CurrentCategoriesPresetName))
+            {
+                Categories.LoadPreset(Settings.Default.CurrentCategoriesPresetName);
+            }
+            else
+            {
+                Categories.BuildDefaultCategoryList();
+            }
             BindKeyPress();
             RequestDraw();
         }
@@ -123,11 +130,14 @@ namespace PictureViewer2
 
         private void ProcessKey(char KeyChar)
         {
-            if (KeyChar == 27) // Escape
+            // Process Full Screen Keys
+            switch (KeyChar)
             {
-                FullScreen = false;
-                return;
+                case (char)27: // Escape
+                    FullScreen = false;
+                    return;
             }
+            // Process Category Keys
             Category category = Categories.FindByKey(KeyChar);
             if (category != null)
             {
@@ -138,15 +148,10 @@ namespace PictureViewer2
                         (string)fileListBox.SelectedItem,
                         category);
                 }
-                catch (IOException)
-                {
-                    MessageBox.Show("File access error. File may already exist.", Program.ApplicationName);
-                }
-                catch (BadPathFormatApplicationException)
-                {
-                    MessageBox.Show("Bad folder format. Check the category configuration.", Program.ApplicationName);
-                }
+                catch (IOException) { MessageBox.Show("File access error. File may already exist.", Program.ApplicationName); }
+                catch (BadPathFormatApplicationException) { MessageBox.Show("Bad folder format. Check the category configuration.", Program.ApplicationName); }
                 fileListBox.Fill(folderPathTextBox.Text);
+                // Trick for getting the list box to focus again, so that the arrow keys will work.
                 fileListBox.Focus();
                 if (!fileListBox.Focused) { fileListBox.Visible = true; fileListBox.Focus(); fileListBox.Visible = false; }
             }
@@ -162,6 +167,11 @@ namespace PictureViewer2
         // Full Screen
 
         private void pictureBox_DoubleClick(object sender, EventArgs e)
+        {
+            FullScreen = !FullScreen;
+        }
+
+        private void fullScreenToolStripMenuItem_Click(object sender, EventArgs e)
         {
             FullScreen = !FullScreen;
         }
@@ -218,7 +228,7 @@ namespace PictureViewer2
             // so that it gets focus, even though it is invisible, so that the arrow keys
             // will result in next-previous behavior.
             fileListBox.Visible = !FullScreen; 
-            //MainMenuStrip.Visible = !FullScreen;
+            menuStrip.Visible = !FullScreen;
             // Positioning
             if (FullScreen)
             {
@@ -230,20 +240,20 @@ namespace PictureViewer2
             else
             {
                 folderPathTextBox.Left = 0;
-                folderPathTextBox.Top = 0;
+                folderPathTextBox.Top = menuStrip.Bottom;
                 folderPathTextBox.Width = LeftPanelWidth;
                 folderTreeView.Left = 0;
-                folderTreeView.Top = folderPathTextBox.Height;
+                folderTreeView.Top = folderPathTextBox.Bottom;
                 folderTreeView.Width = LeftPanelWidth / 2;
-                folderTreeView.Height = this.ClientSize.Height - folderPathTextBox.Height;
+                folderTreeView.Height = this.ClientSize.Height - folderPathTextBox.Bottom;
                 fileListBox.Left = LeftPanelWidth / 2;
-                fileListBox.Top = folderPathTextBox.Height;
+                fileListBox.Top = folderPathTextBox.Bottom;
                 fileListBox.Width = LeftPanelWidth / 2;
-                fileListBox.Height = this.ClientSize.Height - folderPathTextBox.Height;
-                pictureBox.Left = LeftPanelWidth + 1;
-                pictureBox.Top = 0;
+                fileListBox.Height = this.ClientSize.Height - fileListBox.Top;
+                pictureBox.Left = LeftPanelWidth;
+                pictureBox.Top = menuStrip.Bottom;
                 pictureBox.Width = this.ClientSize.Width - LeftPanelWidth;
-                pictureBox.Height = this.ClientSize.Height;
+                pictureBox.Height = this.ClientSize.Height - menuStrip.Bottom;
             }
             ResumeLayout();
         }
@@ -281,6 +291,15 @@ namespace PictureViewer2
             Settings.Default.WindowWidth = Width;
             Settings.Default.WindowHeight = Height;
             Settings.Default.Save();
+        }
+
+        // Categories
+
+        private void categoriesToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var categoriesWindow = new CategoriesWindow();
+            categoriesWindow.CategoryList = Categories.List;
+            categoriesWindow.ShowDialog();
         }
 
     }

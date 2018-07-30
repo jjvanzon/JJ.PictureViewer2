@@ -10,12 +10,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Xml.Serialization;
 
 namespace PictureViewer2
 {
-    class Category
+    
+    [Serializable]
+    public class Category
     {
-        public string Name;
-        public char Key;
+        [XmlElement] public string SubFolderName;
+        [XmlElement] public char KeyboardKey;
     }
+
 }
