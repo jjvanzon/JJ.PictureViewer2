@@ -1,0 +1,4 @@
+2010-10-30 00  2.0 : Basic functionality finished
+2010-10-31 00  2.2 : Mainly added Category Editor with Preset storage, before centralizing storage of category presets
+2010-11-01 00  2.3 : Backup before opening IsolatedStorageFile in CategoryListRepository constructor.
+2010-11-06 00  2.4 : Backup before making name combo box in categories editor not free to fill in.
