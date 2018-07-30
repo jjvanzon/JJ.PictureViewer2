@@ -29,8 +29,7 @@ namespace PictureViewer2
         public MainWindow()
         {
             InitializeComponent();
-            var repository = new CategoryListRepository();
-            CategoryList = repository.GetCurrentOrDefaultCategoryList();
+            CategoryList = CategoryListRepository.GetCurrentOrDefaultCategoryList();
             BindKeyPress();
             RequestDraw();
         }
@@ -45,8 +44,14 @@ namespace PictureViewer2
             SaveSettings();
         }
 
-        // Category List
+        private void exitToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Close();
+        }
 
+        // Data
+
+        private CategoryListRepository CategoryListRepository = new CategoryListRepository();
         private CategoryList CategoryList;
 
         // Selecting Items
@@ -283,10 +288,13 @@ namespace PictureViewer2
         {
             Settings.Default.FolderPath = folderPathTextBox.Text;
             Settings.Default.SelectedFileIndex = fileListBox.SelectedIndex;
-            Settings.Default.WindowLeft = Left;
-            Settings.Default.WindowTop = Top;
-            Settings.Default.WindowWidth = Width;
-            Settings.Default.WindowHeight = Height;
+            if (this.WindowState == FormWindowState.Normal)
+            {
+                Settings.Default.WindowLeft = Left;
+                Settings.Default.WindowTop = Top;
+                Settings.Default.WindowWidth = Width;
+                Settings.Default.WindowHeight = Height;
+            }
             Settings.Default.Save();
         }
 
@@ -294,8 +302,11 @@ namespace PictureViewer2
 
         private void categoriesToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            // Show 
             var categoriesWindow = new CategoriesWindow();
             categoriesWindow.ShowDialog();
+            // Reload category list
+            CategoryList = CategoryListRepository.GetCurrentOrDefaultCategoryList();
         }
 
     }

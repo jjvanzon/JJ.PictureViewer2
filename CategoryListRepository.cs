@@ -23,6 +23,29 @@ namespace PictureViewer2
     class CategoryListRepository
     {
 
+        // Data Store
+
+        IsolatedStorageFile IsolatedStorageFile;
+
+        // Initialization & Finalization
+
+        public CategoryListRepository()
+        {
+            // Open Isolated Storage File
+            // Get store
+            IsolatedStorageFile = IsolatedStorageFile.GetMachineStoreForAssembly();
+            // Ensure directory
+            IsolatedStorageFile.CreateDirectory(DirectoryName); // Will succeed if it already exists.
+        }
+
+        ~CategoryListRepository()
+        {
+            // Close Isolated Storage File
+            IsolatedStorageFile.Close();
+        }
+
+        // Repository Methods
+
         public string CurrentCategoryListName
         {
             get
@@ -39,6 +62,7 @@ namespace PictureViewer2
         public CategoryList GetDefaultCategoryList()
         {
             var categoryList = new CategoryList();
+            categoryList.IsDefault = true;
             categoryList.Add(new Category() { SubFolderName = "Greatest", KeyboardKey = 'S' });
             categoryList.Add(new Category() { SubFolderName = "Great", KeyboardKey = 'G' });
             categoryList.Add(new Category() { SubFolderName = "Good", KeyboardKey = 'Y' });
@@ -72,23 +96,19 @@ namespace PictureViewer2
             // File Exists?
             if (CategoryListExists(categoryListName))
             {
-                // Call isolated storage helper
-                IsolatedStorageFile isf;
-                string path;
-                IsolatedStorageHelper(
-                    categoryListName,
-                    out isf,
-                    out path);
-                using (isf)
+                // Construct Path
+                string path = NameToPath(categoryListName);
+                // Load file
+                using (var fs = new IsolatedStorageFileStream(path, FileMode.Open, FileAccess.Read, IsolatedStorageFile))
                 {
-                    // Load file
-                    using (var fs = new IsolatedStorageFileStream(path, FileMode.Open, FileAccess.Read, isf))
-                    {
-                        // Create Serializer
-                        var xmlSerializer = new XmlSerializer(typeof(CategoryList));
-                        // Serialize
-                        return (CategoryList)xmlSerializer.Deserialize(fs);
-                    }
+                    // Create Serializer
+                    var xmlSerializer = new XmlSerializer(typeof(CategoryList));
+                    // Deserialize
+                    CategoryList returnValue = (CategoryList)xmlSerializer.Deserialize(fs);
+                    // Set name (name property didn't serialize)
+                    returnValue.Name = categoryListName;
+                    // Return
+                    return returnValue;
                 }
             }
             // Last resort
@@ -97,94 +117,71 @@ namespace PictureViewer2
 
         public bool CategoryListExists(string categoryListName)
         {
-            // Call isolated storage helper
-            IsolatedStorageFile isf;
-            string path;
-            IsolatedStorageHelper(
-                categoryListName,
-                out isf,
-                out path);
-            using (isf)
-            {
-                // Check file exists
-                bool returnValue = isf.FileExists(path);
-                // Close store
-                isf.Close();
-                // Return
-                return returnValue;
-            }
+            // Construct Path
+            string path = NameToPath(categoryListName);
+            // Check file exists
+            bool returnValue = IsolatedStorageFile.FileExists(path);
+            // Return
+            return returnValue;
         }
 
         public void SaveCategoryList(CategoryList categoryList)
         {
-            // Call isolated storage helper
-            IsolatedStorageFile isf;
-            string path;
-            IsolatedStorageHelper(
-                categoryList.Name,
-                out isf,
-                out path);
-            using (isf)
+            // Construct Path
+            string path = NameToPath(categoryList.Name);
+            // Save file (overwrite if exists)
+            // Create Stream
+            using (var fs = new IsolatedStorageFileStream(path, FileMode.Create, FileAccess.Write, IsolatedStorageFile))
             {
-                // Save file (overwrite if exists)
-                // Create Stream
-                using (var fs = new IsolatedStorageFileStream(path, FileMode.Create, FileAccess.Write, isf))
-                {
-                    // Create Serializer
-                    var xmlSerializer = new XmlSerializer(typeof(CategoryList));
-                    // Serialize
-                    xmlSerializer.Serialize(fs, categoryList);
-                }
+                // Create Serializer
+                var xmlSerializer = new XmlSerializer(typeof(CategoryList));
+                // Serialize
+                xmlSerializer.Serialize(fs, categoryList);
             }
+        }
+
+        public string GetFirstCategoryListName()
+        {
+            string fileName = IsolatedStorageFile.GetFileNames(Path.Combine(DirectoryName, "*.xml")).FirstOrDefault();
+            return Path.GetFileNameWithoutExtension(fileName);
         }
 
         public string[] GetAllCategoryListNames()
         {
-            // Call isolated storage helper
-            IsolatedStorageFile isf;
-            string path; // Dummy
-            IsolatedStorageHelper(
-                null,
-                out isf,
-                out path);
-            using (isf)
+            // Get file names
+            string[] fileNames = IsolatedStorageFile.GetFileNames(Path.Combine(DirectoryName, "*.xml"));
+            // Get rid of extensions
+            for (int i = 0; i < fileNames.Count(); i++)
             {
-                // Get file names
-                string[] fileNames = isf.GetFileNames(Path.Combine(DirectoryName, "*.xml"));
-                // Get rid of extensions
-                for (int i = 0; i < fileNames.Count(); i++)
-                {
-                    fileNames[i] = Path.GetFileNameWithoutExtension(fileNames[i]);
-                }
-                // Close store
-                isf.Close();
-                // return
-                return fileNames;
+                fileNames[i] = Path.GetFileNameWithoutExtension(fileNames[i]);
             }
+            // return
+            return fileNames;
         }
 
-        // Isolated Storage Helpers
+        public void Rename(CategoryList categoryList, string newName)
+        {
+            // Delete old one
+            DeleteCategoryList(categoryList.Name);
+            // Change name property
+            categoryList.Name = newName;
+            // Save new one
+            SaveCategoryList(categoryList);
+        }
+
+        public void DeleteCategoryList(string name)
+        {
+            string path = NameToPath(name);
+            IsolatedStorageFile.DeleteFile(path);
+        }
+    
+        // Helpers
 
         private string DirectoryName { get { return "Category Presets"; } }
 
-        public void IsolatedStorageHelper(
-            string categoryListName,
-            out IsolatedStorageFile isf,
-            out string path)
+        private string NameToPath(string name)
         {
-            // Get store
-            isf = IsolatedStorageFile.GetMachineStoreForAssembly();
-            // Ensure directory
-            isf.CreateDirectory(DirectoryName); // Will succeed if it already exists.
-            // Set file path
-            if (!String.IsNullOrWhiteSpace(categoryListName))
-            {
-                path = Path.Combine(DirectoryName, categoryListName + ".xml");
-            }
-            else
-            {
-                path = ""; 
-            }
+            return Path.Combine(DirectoryName, name + ".xml");
         }
 
     }

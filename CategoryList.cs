@@ -22,6 +22,7 @@ namespace PictureViewer2
     {
 
         public string Name;
+        public bool IsDefault;
 
         public Category FindCategoryByKey(char keyboardKey)
         {

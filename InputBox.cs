@@ -2,13 +2,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Windows.Forms;
 
 namespace PictureViewer2
 {
     public static class InputBox
     {
-
-        public static string Show(string prompt, string value, string title = "")
+        public static string Show(
+            string prompt, 
+            string value, 
+            string title = "")
         {
             var w = new InputBoxWindow();
             w.promptLabel.Text = prompt;
@@ -17,6 +20,5 @@ namespace PictureViewer2
             w.ShowDialog();
             return w.valueTextBox.Text;
         }
-
     }
 }

@@ -108,6 +108,9 @@ namespace PictureViewer2
             TreeNode n;
             foreach (string pathElement in pathElements.Skip(1))
             {
+                // Workaround for when it is the root node:
+                // splitting 'C:\' will result in 'C:' and an empty string.
+                if (String.IsNullOrEmpty(pathElement)) continue;
                 // Get the child node for this path element
                 n = (
                     from TreeNode node in parentNode.Nodes
