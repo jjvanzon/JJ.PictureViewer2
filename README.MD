@@ -3,6 +3,9 @@ JJ.PictureViewer2
 
 *Jan-Joost van Zon, 2010-10*
 
+Introduction
+------------
+
 This is a Visual Studio 2010 C# project.
 
 A simple picture viewer program.
